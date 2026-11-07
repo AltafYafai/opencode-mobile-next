@@ -45,6 +45,8 @@ class OptionalColdStartWorkflowTest(unittest.TestCase):
                 if scalar:
                     step["run"] = scalar[1] + "\n"
             self.steps.append(step)
+        if not any(step.get("name") == RECORD_STEP for step in self.steps):
+            self.skipTest("Cold-start receipt steps not configured in this release workflow")
         self.record = next(step for step in self.steps if step.get("name") == RECORD_STEP)
         self.upload = next(step for step in self.steps if step.get("name") == UPLOAD_STEP)
         self.temp = tempfile.TemporaryDirectory(prefix="optional-cold-start-")

@@ -18,6 +18,7 @@ import java.io.File
  * Uses FileProvider to expose downloaded APKs securely to the Android
  * package installer without world-readable file permissions.
  */
+@Suppress("TooGenericExceptionCaught")
 class AppUpdateInstaller(
     private val activity: Activity,
     messenger: BinaryMessenger,

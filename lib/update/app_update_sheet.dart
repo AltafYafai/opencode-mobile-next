@@ -186,8 +186,9 @@ class _UpdateSheetBodyState extends State<_UpdateSheetBody> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(height: tokens.space2),
-          KitText.secondary(
+          KitText(
             widget.l10n.appUpdateSize(widget.release.formattedSize),
+            role: KitTextRole.secondary,
           ),
           SizedBox(height: tokens.space4),
           if (_status == _UpdateStatus.downloading) ...[
@@ -199,22 +200,43 @@ class _UpdateSheetBodyState extends State<_UpdateSheetBody> {
               ),
             ),
             SizedBox(height: tokens.space3),
-            KitText.secondary(widget.l10n.appUpdateDownloading),
+            KitText(
+              widget.l10n.appUpdateDownloading,
+              role: KitTextRole.secondary,
+            ),
           ] else if (_status == _UpdateStatus.ready) ...[
-            KitText.body(widget.l10n.appUpdateReadyToInstall),
+            KitText(
+              widget.l10n.appUpdateReadyToInstall,
+              role: KitTextRole.body,
+            ),
           ] else if (_status == _UpdateStatus.failed) ...[
-            KitText.body(widget.l10n.appUpdateDownloadFailed),
+            KitText(
+              widget.l10n.appUpdateDownloadFailed,
+              role: KitTextRole.body,
+            ),
             if (_errorMessage != null) ...[
               SizedBox(height: tokens.space2),
-              KitText.secondary(_errorMessage!),
+              KitText(
+                _errorMessage!,
+                role: KitTextRole.secondary,
+              ),
             ],
           ] else ...[
-            KitText.sectionTitle(widget.l10n.appUpdateChangelog),
+            KitText(
+              widget.l10n.appUpdateChangelog,
+              role: KitTextRole.headline,
+            ),
             SizedBox(height: tokens.space2),
             if (widget.release.changelog.isNotEmpty)
-              KitText.body(widget.release.changelog)
+              KitText(
+                widget.release.changelog,
+                role: KitTextRole.body,
+              )
             else
-              KitText.secondary(widget.l10n.desktopReleaseWhatChanged),
+              KitText(
+                widget.l10n.desktopReleaseWhatChanged,
+                role: KitTextRole.secondary,
+              ),
           ],
           SizedBox(height: tokens.space4),
         ],
