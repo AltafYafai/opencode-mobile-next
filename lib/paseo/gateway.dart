@@ -1253,7 +1253,25 @@ class PaseoGateway extends _PaseoWorkspace
           modelData[modelID]!['isDefault'] = true;
         }
       }
-      if (modelIDs.isEmpty) {
+      if (modelIDs.isEmpty && id == 'antigravity') {
+        const agyModels = [
+          ('gemini-3.8-flash-high', 'Gemini 3.8 Flash (High)', true),
+          ('gemini-3.8-flash-medium', 'Gemini 3.8 Flash (Medium)', false),
+          ('gemini-3.8-flash-low', 'Gemini 3.8 Flash (Low)', false),
+          ('claude-sonnet-4-6', 'Claude Sonnet 4.6 (Thinking)', false),
+          ('claude-opus-4-6-thinking', 'Claude Opus 4.6 (Thinking)', false),
+          ('gpt-oss-120b-medium', 'GPT-OSS 120B (Medium)', false),
+        ];
+        for (final (mId, mLabel, isDef) in agyModels) {
+          modelIDs.add(mId);
+          modelData[mId] = {
+            'id': mId,
+            'name': mLabel,
+            if (isDef) 'isDefault': true,
+          };
+          if (isDef) providerDefault ??= mId;
+        }
+      } else if (modelIDs.isEmpty) {
         modelIDs.add(paseoDefaultModel);
         modelData[paseoDefaultModel] = {
           'id': paseoDefaultModel,

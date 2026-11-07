@@ -106,7 +106,7 @@ DateTime? _time(Object? value) {
 bool _daemonNeedsSignIn(String id, Object? status) =>
     _daemonSignInProviders.contains(id) && status == 'unavailable';
 
-const _daemonSignInProviders = {'claude'};
+const _daemonSignInProviders = {'claude', 'antigravity'};
 
 /// Tolerant parse of a `provider.usage.list.response` payload. Unknown
 /// providers, statuses and fields are ignored; a provider that is not

@@ -899,6 +899,34 @@ final class BuiltinPhoneAgents implements PhoneAgentHost {
               '/home/oc/.local/bin/${agent.recipe!.executable}',
               ...agent.recipe!.launchArgs,
             ],
+            if (agent.providerId == 'antigravity')
+              'models': [
+                {
+                  'id': 'gemini-3.8-flash-high',
+                  'label': 'Gemini 3.8 Flash (High)',
+                  'isDefault': true,
+                },
+                {
+                  'id': 'gemini-3.8-flash-medium',
+                  'label': 'Gemini 3.8 Flash (Medium)',
+                },
+                {
+                  'id': 'gemini-3.8-flash-low',
+                  'label': 'Gemini 3.8 Flash (Low)',
+                },
+                {
+                  'id': 'claude-sonnet-4-6',
+                  'label': 'Claude Sonnet 4.6 (Thinking)',
+                },
+                {
+                  'id': 'claude-opus-4-6-thinking',
+                  'label': 'Claude Opus 4.6 (Thinking)',
+                },
+                {
+                  'id': 'gpt-oss-120b-medium',
+                  'label': 'GPT-OSS 120B (Medium)',
+                },
+              ],
           },
       },
     },

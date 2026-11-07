@@ -63,7 +63,7 @@ const _done = [
   ComponentProgress(
     id: SetupComponentIds.linux,
     state: ComponentState.done,
-    version: '24.04.5',
+    version: '26.04.1',
   ),
   ComponentProgress(
     id: SetupComponentIds.essentials,

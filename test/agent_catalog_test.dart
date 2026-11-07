@@ -243,10 +243,10 @@ void main() {
     expect(entry.capabilities.cancel, isFalse);
   });
 
-  test('Antigravity has no bundled runtime qualification', () {
+  test('Antigravity has bundled runtime qualification for chat and models', () {
     final entry = AgentCatalog.builtIn.byId('antigravity')!;
     final matrix = AgentCertificationMatrix.bundled;
-    expect(matrix.certifiedForChat(entry.id), isFalse);
+    expect(matrix.certifiedForChat(entry.id), isTrue);
     for (final architecture in AgentArchitecture.values) {
       final capabilities = matrix.capabilitiesFor(
         descriptor: entry,
@@ -254,10 +254,10 @@ void main() {
         helperVersion: '0.11.2',
       );
       expect(capabilities.resumeVerified, isFalse);
-      expect(capabilities.modelList, isFalse);
-      expect(capabilities.permissions, isFalse);
-      expect(capabilities.images, isFalse);
-      expect(capabilities.cancel, isFalse);
+      expect(capabilities.modelList, isTrue);
+      expect(capabilities.permissions, isTrue);
+      expect(capabilities.images, isTrue);
+      expect(capabilities.cancel, isTrue);
     }
   });
 

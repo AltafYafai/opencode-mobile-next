@@ -103,7 +103,7 @@ void main() {
             41,
             'antigravity',
             10,
-            '/home/oc/.local/share/oc-agents/antigravity/1.5.0/payload/antigravity --acp',
+            '/home/oc/.local/share/oc-agents/antigravity/1.5.3/payload/antigravity --acp',
           ),
         ].join('\n'),
       ).processes;

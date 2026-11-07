@@ -7,9 +7,9 @@ apt-get update
 apt-get -y --no-remove -o Dpkg::Options::="--force-confold" --fix-broken install
 apt-get -y --no-remove -o Dpkg::Options::="--force-confold" install proot-distro curl openssl
 case "$(uname -m)" in
-  aarch64|arm64) arch=arm64; sha=a91d5a93010193712d346d761372b7c9db6dfcf093893161c64ca107f05914f2 ;;
-  arm|armv7l|armv8l) arch=armhf; sha=4fcee4d278f1c5232e085a021a85e4c6cef3853557a88d98ff380b5e5d5841bb ;;
-  x86_64|amd64) arch=amd64; sha=e77b6f10c2590cef872b33ee9f635a0e3fd1f57fb074c0e52b5c7f56147a0c86 ;;
+  aarch64|arm64) arch=arm64; sha=5a1906794ced63a71a8119c3f211ef5f0bbe0a243001b4bbd41fdf80c5b219fd ;;
+  arm|armv7l|armv8l) arch=armhf; sha=a40848e9c4ed72c22bdcb6a7bc9832e1ca8a30e5a3e2a0543dc56ed14e2e38b7 ;;
+  x86_64|amd64) arch=amd64; sha=a496a960472ce474a59590b8987d3a1135d3cbef1991f3b1abe8cacfea8bf85a ;;
   *) exit 64 ;;
 esac
 mkdir -p "$HOME/.oc/setup-v2"
@@ -20,7 +20,7 @@ root="$PREFIX/var/lib/proot-distro/installed-rootfs/opencode-ubuntu"
 [ ! -d "$root" ] &&
   [ ! -d "$PREFIX/var/lib/proot-distro/containers/opencode-ubuntu/rootfs" ] || exit 65
 curl --fail --location --retry 5 --connect-timeout 20 \
-  "https://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release/ubuntu-base-24.04.5-base-$arch.tar.gz" -o "$archive"
+  "https://cdimage.ubuntu.com/ubuntu-base/releases/26.04/release/ubuntu-base-26.04.1-base-$arch.tar.gz" -o "$archive"
 printf '%s  %s\n' "$sha" "$archive" | sha256sum -c -
 proot-distro install "$archive" --name opencode-ubuntu
 proot-distro login opencode-ubuntu -- /bin/true

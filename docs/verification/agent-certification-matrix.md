@@ -19,6 +19,7 @@ Machine-readable copy: [agent-certification-matrix.json](agent-certification-mat
 | Qwen Code | 0.24.7 | ACP via Paseo | ✅ | ✅ | ❌ | 🔒 | 🔒 | 🔒 | 🔒 | 🔒 | 🔒 | 🔒 | 🔒 | 🔒 | — |
 | Goose | 1.53.0 | ACP via Paseo | ✅ | ✅ | ❌ | 🔒 | 🔒 | 🔒 | 🔒 | 🔒 | 🔒 | 🔒 | 🔒 | 🔒 | — |
 | Oh My Pi | 18.5.1 | ACP via Paseo | ✅ | ✅ | ❌ | 🔒 | 🔒 | 🔒 | 🔒 | 🔒 | 🔒 | 🔒 | 🔒 | 🔒 | — |
+| Antigravity | 1.5.3 | ACP via Paseo | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | · | · | — |
 
 ## What each column means
 
@@ -102,6 +103,20 @@ Machine-readable copy: [agent-certification-matrix.json](agent-certification-mat
 - install: pass — docs/qa/FQ-install-2026-10-08/README.md#omp-acp
 - version: pass — docs/qa/FQ-install-2026-10-08/README.md#omp-acp
 - signedOut: fail — docs/qa/FQ-install-2026-10-08/README.md#omp-acp
+- cards: n/a — no cards adapter yet
+
+**Antigravity**
+
+- install: pass — docs/verification/acp-paseo-pilot-2026-10-02.md#antigravity
+- version: pass — docs/verification/acp-paseo-pilot-2026-10-02.md#antigravity
+- signedOut: pass — docs/verification/acp-paseo-pilot-2026-10-02.md#antigravity
+- signIn: pass — docs/verification/acp-paseo-pilot-2026-10-02.md#antigravity
+- models: pass — docs/verification/acp-paseo-pilot-2026-10-02.md#antigravity
+- smoke: pass — docs/verification/acp-paseo-pilot-2026-10-02.md#antigravity
+- tools: pass — docs/verification/acp-paseo-pilot-2026-10-02.md#antigravity
+- permission: pass — docs/verification/acp-paseo-pilot-2026-10-02.md#antigravity
+- abort: pass — docs/verification/acp-paseo-pilot-2026-10-02.md#antigravity
+- images: pass — docs/verification/acp-paseo-pilot-2026-10-02.md#antigravity
 - cards: n/a — no cards adapter yet
 
 ## How to fill a cell

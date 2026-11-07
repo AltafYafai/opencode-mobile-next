@@ -701,20 +701,20 @@ prepare_termux_dependencies() {
 
 install_ubuntu_base() {
   local archive="$OC_DIR/ubuntu-base.tar.gz"
-  local base_url='https://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release'
+  local base_url='https://cdimage.ubuntu.com/ubuntu-base/releases/26.04/release'
   local filename checksum
   case "$(uname -m)" in
     aarch64|arm64)
-      filename='ubuntu-base-24.04.5-base-arm64.tar.gz'
-      checksum='a91d5a93010193712d346d761372b7c9db6dfcf093893161c64ca107f05914f2'
+      filename='ubuntu-base-26.04.1-base-arm64.tar.gz'
+      checksum='5a1906794ced63a71a8119c3f211ef5f0bbe0a243001b4bbd41fdf80c5b219fd'
       ;;
     arm|armv7l|armv8l)
-      filename='ubuntu-base-24.04.5-base-armhf.tar.gz'
-      checksum='4fcee4d278f1c5232e085a021a85e4c6cef3853557a88d98ff380b5e5d5841bb'
+      filename='ubuntu-base-26.04.1-base-armhf.tar.gz'
+      checksum='a40848e9c4ed72c22bdcb6a7bc9832e1ca8a30e5a3e2a0543dc56ed14e2e38b7'
       ;;
     x86_64|amd64)
-      filename='ubuntu-base-24.04.5-base-amd64.tar.gz'
-      checksum='e77b6f10c2590cef872b33ee9f635a0e3fd1f57fb074c0e52b5c7f56147a0c86'
+      filename='ubuntu-base-26.04.1-base-amd64.tar.gz'
+      checksum='a496a960472ce474a59590b8987d3a1135d3cbef1991f3b1abe8cacfea8bf85a'
       ;;
     *) fail_setup "Unsupported CPU architecture: $(uname -m)" "$CURRENT_PORT" ;;
   esac
@@ -734,7 +734,7 @@ install_ubuntu_base() {
       return
     fi
   fi
-  printf 'source=canonical-ubuntu-base-24.04.5\n' > "$UBUNTU_INSTALL_MARKER"
+  printf 'source=canonical-ubuntu-base-26.04.1\n' > "$UBUNTU_INSTALL_MARKER"
   proot-distro install "$archive" --name "$PROOT_NAME"
   rm -f "$archive"
   ubuntu_usable || fail_setup 'Ubuntu Base extraction did not create a usable container' "$CURRENT_PORT"

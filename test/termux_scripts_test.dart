@@ -1185,14 +1185,14 @@ wait
     final manager = TermuxBridge.managerScriptForTesting();
 
     expect(manager, isNot(contains('proot-distro install ubuntu')));
-    expect(manager, contains('cdimage.ubuntu.com/ubuntu-base/releases/24.04'));
-    expect(manager, contains('ubuntu-base-24.04.5-base-arm64.tar.gz'));
-    expect(manager, contains('ubuntu-base-24.04.5-base-armhf.tar.gz'));
-    expect(manager, contains('ubuntu-base-24.04.5-base-amd64.tar.gz'));
+    expect(manager, contains('cdimage.ubuntu.com/ubuntu-base/releases/26.04'));
+    expect(manager, contains('ubuntu-base-26.04.1-base-arm64.tar.gz'));
+    expect(manager, contains('ubuntu-base-26.04.1-base-armhf.tar.gz'));
+    expect(manager, contains('ubuntu-base-26.04.1-base-amd64.tar.gz'));
     expect(
       manager,
       contains(
-        'a91d5a93010193712d346d761372b7c9db6dfcf093893161c64ca107f05914f2',
+        '5a1906794ced63a71a8119c3f211ef5f0bbe0a243001b4bbd41fdf80c5b219fd',
       ),
     );
     expect(manager, contains("printf '%s  %s\\n' \"\$checksum\""));

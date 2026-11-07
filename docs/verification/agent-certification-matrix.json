@@ -1188,6 +1188,67 @@
      }
     }
    }
+  },
+  {
+   "id": "antigravity",
+   "name": "Antigravity",
+   "route": "ACP via Paseo",
+   "cells": {
+    "install": {
+     "state": "pass",
+     "evidence": "docs/qa/issue-116-antigravity/README.md"
+    },
+    "version": {
+     "state": "pass",
+     "evidence": "docs/qa/issue-116-antigravity/README.md"
+    },
+    "signedOut": {
+     "state": "pass",
+     "evidence": "docs/qa/issue-116-antigravity/README.md"
+    },
+    "signIn": {
+     "state": "pass",
+     "evidence": "docs/qa/issue-116-antigravity/README.md"
+    },
+    "models": {
+     "state": "pass",
+     "evidence": "docs/qa/issue-116-antigravity/README.md"
+    },
+    "smoke": {
+     "state": "pass",
+     "evidence": "docs/qa/issue-116-antigravity/README.md"
+    },
+    "tools": {
+     "state": "pass",
+     "evidence": "docs/qa/issue-116-antigravity/README.md"
+    },
+    "permission": {
+     "state": "pass",
+     "evidence": "docs/qa/issue-116-antigravity/README.md"
+    },
+    "abort": {
+     "state": "pass",
+     "evidence": "docs/qa/issue-116-antigravity/README.md"
+    },
+    "resume": {
+     "state": "blocked:unverified",
+     "evidence": "Can't reopen old chats"
+    },
+    "network": {
+     "state": "untested",
+     "evidence": null
+    },
+    "cards": {
+     "state": "n/a",
+     "evidence": "no cards adapter yet"
+    },
+    "images": {
+     "state": "pass",
+     "evidence": "docs/qa/issue-116-antigravity/README.md"
+    }
+   },
+   "agentVersion": "1.5.3",
+   "helperVersion": "0.9.2"
   }
  ],
  "metadata": "agentVersion = the catalog pin the evidence ran on; helperVersion = the Paseo helper it ran through; architecture omitted = holds on every CPU (coordinator decision, protocol-level evidence)."

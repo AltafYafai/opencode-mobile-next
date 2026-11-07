@@ -4564,20 +4564,20 @@ class BuiltinLinux(private val context: Context) {
                 instance ?: BuiltinLinux(context.applicationContext).also { instance = it }
             }
 
-        // Ubuntu Base 24.04.5 (noble), from Canonical's SHA256SUMS.
+        // Ubuntu Base 26.04.1 (resolute), from Canonical's SHA256SUMS.
         /** What the setup checklist shows for the Linux base once installed. */
-        const val VERSION = "24.04.5"
+        const val VERSION = "26.04.1"
         const val PHONE_ENGINE = "phone-engine"
 
         private const val BASE =
-            "https://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release/"
+            "https://cdimage.ubuntu.com/ubuntu-base/releases/26.04/release/"
         val arm64 = Image(
-            BASE + "ubuntu-base-24.04.5-base-arm64.tar.gz",
-            "a91d5a93010193712d346d761372b7c9db6dfcf093893161c64ca107f05914f2",
+            BASE + "ubuntu-base-26.04.1-base-arm64.tar.gz",
+            "5a1906794ced63a71a8119c3f211ef5f0bbe0a243001b4bbd41fdf80c5b219fd",
         )
         val amd64 = Image(
-            BASE + "ubuntu-base-24.04.5-base-amd64.tar.gz",
-            "e77b6f10c2590cef872b33ee9f635a0e3fd1f57fb074c0e52b5c7f56147a0c86",
+            BASE + "ubuntu-base-26.04.1-base-amd64.tar.gz",
+            "a496a960472ce474a59590b8987d3a1135d3cbef1991f3b1abe8cacfea8bf85a",
         )
 
         fun imageForDevice(): Image =
