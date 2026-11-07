@@ -2,6 +2,13 @@
 
 This project is in public alpha. Only the newest preview is supported.
 
+## 2.1.5+64 — 2026-11-07
+
+Real Antigravity usage statistics and quota tracking matching Termux CLI output
+(weekly limits, 5-hour limits, Gemini models, remaining percentages, and refresh
+timers); in-app updater multi-locale support and release packaging fixes.
+Full notes: [docs/releases/v2.1.5+64.md](docs/releases/v2.1.5+64.md).
+
 ## 2.1.4+63 — 2026-11-07
 
 Antigravity CLI updated to 1.5.3 with full models list, usage metrics, and
