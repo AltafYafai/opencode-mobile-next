@@ -316,21 +316,27 @@ mixin _ConnectionControllerPhoneAgents on ChangeNotifier
     if (antigravityRow != null &&
         antigravityRow.status == PhoneAgentStatus.ready) {
       if (!readings.any((r) => r.providerId == 'antigravity')) {
-        readings.add(
-          ProviderUsageReading(
-            providerId: 'antigravity',
-            displayName: 'Antigravity',
-            fetchedAt: DateTime.now().toUtc(),
-            windows: const [
-              ProviderUsageWindowReading(
-                durationSeconds: null,
-                label: 'Google AI Pro',
-                remainingPercent: 100,
-                resetsAt: null,
-              ),
-            ],
-          ),
-        );
+        final agyReading = await _readAntigravityUsage();
+        if (agyReading != null) {
+          readings.add(agyReading);
+        } else {
+          readings.add(
+            ProviderUsageReading(
+              providerId: 'antigravity',
+              displayName: 'Antigravity',
+              fetchedAt: DateTime.now().toUtc(),
+              windows: const [
+                ProviderUsageWindowReading(
+                  windowId: 'window',
+                  durationSeconds: null,
+                  label: 'Google AI Pro',
+                  remainingPercent: 100,
+                  resetsAt: null,
+                ),
+              ],
+            ),
+          );
+        }
       }
     } else if (antigravityRow != null &&
         antigravityRow.status == PhoneAgentStatus.signedOut) {
@@ -345,8 +351,34 @@ mixin _ConnectionControllerPhoneAgents on ChangeNotifier
           ),
         );
       }
+    } else if (antigravityRow == null) {
+      if (!readings.any((r) => r.providerId == 'antigravity')) {
+        final agyReading = await _readAntigravityUsage();
+        if (agyReading != null && !agyReading.needsSignIn) {
+          readings.add(agyReading);
+        }
+      }
     }
     return readings;
+  }
+
+  AntigravityQuotaClient? _paAntigravityClient;
+  AntigravityQuotaClient get _paEnsureAntigravityClient =>
+      _paAntigravityClient ??= AntigravityQuotaClient();
+
+  @visibleForTesting
+  set paAntigravityClient(AntigravityQuotaClient? client) =>
+      _paAntigravityClient = client;
+
+  Future<ProviderUsageReading?> _readAntigravityUsage() async {
+    final profileId = _paProfile?.id;
+    try {
+      return await _paEnsureAntigravityClient.fetchUsage(
+        profileId: profileId,
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   PhoneAgentHostPort _paEnsureHost() {

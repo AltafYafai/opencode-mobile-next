@@ -21,6 +21,9 @@ abstract interface class ProviderUsageGateway {
 }
 
 class ProviderUsageWindowReading {
+  /// Explicit window identifier (e.g. `weekly`, `5h`, `gemini`).
+  final String? windowId;
+
   /// The window's length when its id names one (`five_hour`, `weekly`).
   final int? durationSeconds;
 
@@ -29,6 +32,7 @@ class ProviderUsageWindowReading {
   final int remainingPercent;
   final DateTime? resetsAt;
   const ProviderUsageWindowReading({
+    this.windowId,
     required this.durationSeconds,
     required this.label,
     required this.remainingPercent,
@@ -46,12 +50,14 @@ class ProviderUsageReading {
   /// The daemon reported this provider as not signed in: no numbers, only the
   /// way in (the widget offers "Sign in").
   final bool needsSignIn;
+  final String? planLabel;
   const ProviderUsageReading({
     required this.providerId,
     required this.displayName,
     required this.fetchedAt,
     required this.windows,
     this.needsSignIn = false,
+    this.planLabel,
   });
 }
 
@@ -163,6 +169,7 @@ List<ProviderUsageReading> parseProviderUsageList(
       if (seconds == null && label == null) continue;
       windows.add(
         ProviderUsageWindowReading(
+          windowId: windowId,
           durationSeconds: seconds,
           label: label ?? '',
           remainingPercent: left.clamp(0, 100).round(),
@@ -182,6 +189,7 @@ List<ProviderUsageReading> parseProviderUsageList(
         displayName: cleanUsageText(raw['displayName'], 24) ?? id,
         fetchedAt: fetched,
         windows: windows.take(maxWindows).toList(growable: false),
+        planLabel: cleanUsageText(raw['planLabel'], 32),
       ),
     );
     if (readings.length >= maxProviders) break;

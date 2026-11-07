@@ -352,15 +352,17 @@ class PaseoUsageSource implements UsageSource {
                 ? UsageReadingStatus.noLimits
                 : UsageReadingStatus.ok,
             fetchedAt: reading.fetchedAt,
+            plan: reading.planLabel,
             method: SignInMethod.plan,
             windows: [
               for (final w in reading.windows)
                 UsageWindow(
-                  id: switch (w.durationSeconds) {
-                    18000 => '5h',
-                    604800 => 'weekly',
-                    _ => w.label.isEmpty ? 'window' : w.label,
-                  },
+                  id: w.windowId ??
+                      switch (w.durationSeconds) {
+                        18000 => '5h',
+                        604800 => 'weekly',
+                        _ => w.label.isEmpty ? 'window' : w.label,
+                      },
                   usedPercent: 100 - w.remainingPercent.toDouble(),
                   durationSeconds: w.durationSeconds,
                   resetsAt: w.resetsAt,
