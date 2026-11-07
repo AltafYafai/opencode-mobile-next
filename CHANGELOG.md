@@ -2,6 +2,14 @@
 
 This project is in public alpha. Only the newest preview is supported.
 
+## 2.1.4+63 — 2026-11-07
+
+Antigravity CLI updated to 1.5.3 with full models list, usage metrics, and
+permissions support; Ubuntu base updated to 26.04.1; in-app update checker on
+every app opening and manual check in About; direct APK download with progress
+and direct in-app install via FileProvider. Full notes:
+[docs/releases/v2.1.4+63.md](docs/releases/v2.1.4+63.md).
+
 ## 2.1.4+62 — 2026-11-06
 
 Built-in Linux sets up on phones where its unpacking tool crashes (#117): the
