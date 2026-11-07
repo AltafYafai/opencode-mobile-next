@@ -316,20 +316,20 @@ mixin _ConnectionControllerPhoneAgents on ChangeNotifier
     if (antigravityRow != null &&
         antigravityRow.status == PhoneAgentStatus.ready) {
       if (!readings.any((r) => r.providerId == 'antigravity')) {
-        final agyReading = await _readAntigravityUsage();
-        if (agyReading != null) {
-          readings.add(agyReading);
+        final agyReadings = await _readAntigravityUsage();
+        if (agyReadings != null && agyReadings.isNotEmpty) {
+          readings.addAll(agyReadings);
         } else {
           readings.add(
             ProviderUsageReading(
               providerId: 'antigravity',
-              displayName: 'Antigravity',
+              displayName: 'Antigravity (Gemini Models)',
               fetchedAt: DateTime.now().toUtc(),
               windows: const [
                 ProviderUsageWindowReading(
-                  windowId: 'window',
-                  durationSeconds: null,
-                  label: 'Google AI Pro',
+                  windowId: '5h',
+                  durationSeconds: 18000,
+                  label: '5-hour',
                   remainingPercent: 100,
                   resetsAt: null,
                 ),
@@ -353,9 +353,9 @@ mixin _ConnectionControllerPhoneAgents on ChangeNotifier
       }
     } else if (antigravityRow == null) {
       if (!readings.any((r) => r.providerId == 'antigravity')) {
-        final agyReading = await _readAntigravityUsage();
-        if (agyReading != null && !agyReading.needsSignIn) {
-          readings.add(agyReading);
+        final agyReadings = await _readAntigravityUsage();
+        if (agyReadings != null && agyReadings.isNotEmpty) {
+          readings.addAll(agyReadings.where((r) => !r.needsSignIn));
         }
       }
     }
@@ -370,10 +370,10 @@ mixin _ConnectionControllerPhoneAgents on ChangeNotifier
   set paAntigravityClient(AntigravityQuotaClient? client) =>
       _paAntigravityClient = client;
 
-  Future<ProviderUsageReading?> _readAntigravityUsage() async {
+  Future<List<ProviderUsageReading>?> _readAntigravityUsage() async {
     final profileId = _paProfile?.id;
     try {
-      return await _paEnsureAntigravityClient.fetchUsage(
+      return await _paEnsureAntigravityClient.fetchAllUsage(
         profileId: profileId,
       );
     } catch (_) {

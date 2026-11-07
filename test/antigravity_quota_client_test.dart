@@ -112,7 +112,9 @@ void main() {
         clock: () => testNow,
       );
 
-      final reading = await client.fetchUsage();
+      final readings = await client.fetchAllUsage();
+      expect(readings.length, 1);
+      final reading = readings.first;
       expect(reading.providerId, 'antigravity');
       expect(reading.displayName, 'Antigravity');
       expect(reading.needsSignIn, isTrue);
@@ -127,12 +129,137 @@ void main() {
         clock: () => testNow,
       );
 
-      final reading = await client.fetchUsage();
+      final readings = await client.fetchAllUsage();
+      expect(readings.length, 1);
+      final reading = readings.first;
       expect(reading.needsSignIn, isTrue);
       expect(reading.windows, isEmpty);
     });
 
-    test('parses actual weekly, 5h, and Gemini quotas with plan label', () async {
+    test('parseCliJson parses both Gemini and Claude & GPT groups accurately', () {
+      final cliData = {
+        'command': {
+          'name': 'usage',
+          'data': {
+            'groups': [
+              {
+                'name': 'Gemini Models',
+                'description': 'Models within this group: Gemini Flash, Gemini Pro',
+                'buckets': [
+                  {
+                    'id': 'gemini-weekly',
+                    'name': 'Weekly Limit Remaining',
+                    'window': 'weekly',
+                    'remaining_fraction': 0.6815,
+                    'reset_time': '2026-11-14T07:25:34Z',
+                  },
+                  {
+                    'id': 'gemini-5h',
+                    'name': 'Five Hour Limit Remaining',
+                    'window': '5h',
+                    'remaining_fraction': 0.4579,
+                    'reset_time': '2026-11-07T21:48:21Z',
+                  },
+                ],
+              },
+              {
+                'name': 'Claude and GPT models',
+                'description': 'Models within this group: Claude Opus, Claude Sonnet, GPT-OSS',
+                'buckets': [
+                  {
+                    'id': '3p-weekly',
+                    'name': 'Weekly Limit Remaining',
+                    'window': 'weekly',
+                    'remaining_fraction': 0.0,
+                    'reset_time': '2026-11-11T10:05:57Z',
+                  },
+                  {
+                    'id': '3p-5h',
+                    'name': 'Five Hour Limit Remaining',
+                    'window': '5h',
+                    'disabled': true,
+                    'remaining_fraction': 1.0,
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      };
+
+      final readings = AntigravityQuotaClient.parseCliJson(
+        cliData,
+        currentNow: testNow,
+      );
+
+      expect(readings.length, 2);
+
+      // 1. Gemini Models
+      final gemini = readings[0];
+      expect(gemini.providerId, 'antigravity');
+      expect(gemini.displayName, 'Antigravity (Gemini Models)');
+      expect(gemini.windows.length, 2);
+      expect(gemini.windows[0].windowId, '5h');
+      expect(gemini.windows[0].remainingPercent, 46);
+      expect(gemini.windows[0].durationSeconds, 18000);
+      expect(gemini.windows[0].resetsAt, DateTime.utc(2026, 11, 7, 21, 48, 21));
+      expect(gemini.windows[1].windowId, 'weekly');
+      expect(gemini.windows[1].remainingPercent, 68);
+      expect(gemini.windows[1].durationSeconds, 604800);
+      expect(gemini.windows[1].resetsAt, DateTime.utc(2026, 11, 14, 7, 25, 34));
+
+      // 2. Claude and GPT models
+      final claude = readings[1];
+      expect(claude.providerId, 'antigravity_claude');
+      expect(claude.displayName, 'Antigravity (Claude and GPT models)');
+      expect(claude.windows.length, 2);
+      expect(claude.windows[0].windowId, '5h');
+      // Disabled 5h bucket must report 0%, NOT 100%!
+      expect(claude.windows[0].remainingPercent, 0);
+      expect(claude.windows[1].windowId, 'weekly');
+      expect(claude.windows[1].remainingPercent, 0);
+      expect(claude.windows[1].resetsAt, DateTime.utc(2026, 11, 11, 10, 5, 57));
+    });
+
+    test('fetchAllUsage reads via cliRunner when available', () async {
+      final cliData = {
+        'command': {
+          'name': 'usage',
+          'data': {
+            'groups': [
+              {
+                'name': 'Gemini Models',
+                'buckets': [
+                  {
+                    'id': 'gemini-5h',
+                    'window': '5h',
+                    'remaining_fraction': 0.45,
+                    'reset_time': '2026-11-07T21:48:21Z',
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      };
+
+      final client = AntigravityQuotaClient(
+        cliRunner: (exe, args) async => ProcessResult(
+          0,
+          0,
+          jsonEncode(cliData),
+          '',
+        ),
+        clock: () => testNow,
+      );
+
+      final readings = await client.fetchAllUsage();
+      expect(readings.length, 1);
+      expect(readings[0].providerId, 'antigravity');
+      expect(readings[0].windows[0].remainingPercent, 45);
+    });
+
+    test('parseHttpReadings parses Gemini and Claude quotas with plan label', () async {
       const summaryJson = '''
       {
         "groups": [
@@ -151,8 +278,8 @@ void main() {
                 "bucketId": "3p-5h",
                 "displayName": "Five Hour Limit Remaining",
                 "window": "5h",
-                "resetTime": "2026-11-08T01:16:25Z",
-                "remainingFraction": 0.85
+                "disabled": true,
+                "remainingFraction": 1.0
               }
             ]
           }
@@ -165,13 +292,8 @@ void main() {
         "buckets": [
           {
             "modelId": "gemini-3.8-flash-tiered",
-            "remainingFraction": 1.0,
+            "remainingFraction": 0.85,
             "resetTime": "2026-11-08T01:16:30Z"
-          },
-          {
-            "modelId": "claude-sonnet-4-6",
-            "remainingFraction": 0,
-            "resetTime": "2026-11-11T10:05:57Z"
           }
         ]
       }
@@ -205,32 +327,23 @@ void main() {
         clock: () => testNow,
       );
 
-      final reading = await client.fetchUsage();
-      expect(reading.providerId, 'antigravity');
-      expect(reading.displayName, 'Antigravity');
-      expect(reading.needsSignIn, isFalse);
-      expect(reading.planLabel, 'Google AI Pro');
-      expect(reading.windows.length, 3);
+      final readings = await client.fetchAllUsage();
+      expect(readings.length, 2);
 
-      // Windows sorted: 5h first, weekly second, other third
-      final fiveHour = reading.windows[0];
-      expect(fiveHour.windowId, '5h');
-      expect(fiveHour.durationSeconds, 18000);
-      expect(fiveHour.remainingPercent, 85);
-      expect(fiveHour.resetsAt, DateTime.utc(2026, 11, 8, 1, 16, 25));
+      // Gemini first
+      final gemini = readings[0];
+      expect(gemini.providerId, 'antigravity');
+      expect(gemini.displayName, 'Antigravity (Gemini Models)');
+      expect(gemini.needsSignIn, isFalse);
+      expect(gemini.planLabel, 'Google AI Pro');
+      expect(gemini.windows[0].remainingPercent, 85);
 
-      final weekly = reading.windows[1];
-      expect(weekly.windowId, 'weekly');
-      expect(weekly.durationSeconds, 604800);
-      expect(weekly.remainingPercent, 0);
-      expect(weekly.resetsAt, DateTime.utc(2026, 11, 11, 10, 5, 57));
-
-      final gemini = reading.windows[2];
-      expect(gemini.windowId, 'gemini');
-      expect(gemini.durationSeconds, isNull);
-      expect(gemini.remainingPercent, 100);
-      expect(gemini.label, 'Gemini (Flash)');
-      expect(gemini.resetsAt, DateTime.utc(2026, 11, 8, 1, 16, 30));
+      // Claude second
+      final claude = readings[1];
+      expect(claude.providerId, 'antigravity_claude');
+      expect(claude.displayName, 'Antigravity (Claude and GPT models)');
+      expect(claude.windows[0].remainingPercent, 0); // disabled = 0%
+      expect(claude.windows[1].remainingPercent, 0);
     });
 
     test('network failure returns cached reading when available', () async {
@@ -241,7 +354,7 @@ void main() {
           if (uri.path.contains('retrieveUserQuotaSummary')) {
             return (
               statusCode: 200,
-              body: '{"groups":[{"buckets":[{"window":"weekly","remainingFraction":0.4}]}]}'
+              body: '{"groups":[{"displayName":"Gemini Models","buckets":[{"window":"weekly","remainingFraction":0.4}]}]}'
             );
           }
           return (statusCode: 200, body: '{}');
@@ -255,13 +368,14 @@ void main() {
         clock: () => testNow,
       );
 
-      final first = await client.fetchUsage();
-      expect(first.windows.length, 1);
-      expect(first.windows.first.remainingPercent, 40);
+      final first = await client.fetchAllUsage();
+      expect(first.length, 1);
+      expect(first[0].windows.first.remainingPercent, 40);
 
       // Second fetch encounters network error and returns cached
-      final second = await client.fetchUsage();
-      expect(second.windows.first.remainingPercent, 40);
+      final second = await client.fetchAllUsage();
+      expect(second.length, 1);
+      expect(second[0].windows.first.remainingPercent, 40);
     });
   });
 }
