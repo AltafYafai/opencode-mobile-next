@@ -346,6 +346,93 @@ void main() {
       expect(claude.windows[1].remainingPercent, 0);
     });
 
+    test('parseHttpReadings parses distinct Gemini weekly and 5h windows from quota summary', () async {
+      const summaryJson = '''
+      {
+        "groups": [
+          {
+            "displayName": "Gemini Models",
+            "description": "Models within this group: Gemini Flash, Gemini Pro",
+            "buckets": [
+              {
+                "bucketId": "gemini-weekly",
+                "displayName": "Weekly Limit Remaining",
+                "window": "weekly",
+                "resetTime": "2026-11-14T07:25:34Z",
+                "remainingFraction": 0.6815
+              },
+              {
+                "bucketId": "gemini-5h",
+                "displayName": "Five Hour Limit Remaining",
+                "window": "5h",
+                "resetTime": "2026-11-07T21:48:21Z",
+                "remainingFraction": 0.4579
+              }
+            ]
+          },
+          {
+            "displayName": "Claude and GPT models",
+            "description": "Models within this group: Claude Opus, Claude Sonnet, GPT-OSS",
+            "buckets": [
+              {
+                "bucketId": "3p-weekly",
+                "displayName": "Weekly Limit Remaining",
+                "window": "weekly",
+                "resetTime": "2026-11-11T10:05:57Z",
+                "remainingFraction": 0.0
+              },
+              {
+                "bucketId": "3p-5h",
+                "displayName": "Five Hour Limit Remaining",
+                "window": "5h",
+                "disabled": true,
+                "remainingFraction": 1.0
+              }
+            ]
+          }
+        ]
+      }
+      ''';
+
+      final fakeHttp = _FakeHttpClient((uri) {
+        if (uri.path.contains('retrieveUserQuotaSummary')) {
+          return (statusCode: 200, body: summaryJson);
+        }
+        if (uri.path.contains('loadCodeAssist')) {
+          return (
+            statusCode: 200,
+            body: '{"paidTier":{"name":"Google AI Pro"},"cloudaicompanionProject":"aicode-consumers"}'
+          );
+        }
+        return (statusCode: 200, body: '{}');
+      });
+
+      final client = AntigravityQuotaClient(
+        clientFactory: () => fakeHttp,
+        tokenReader: ({profileId, supportDir}) async => 'valid-bearer-token',
+        clock: () => testNow,
+      );
+
+      final readings = await client.fetchAllUsage();
+      expect(readings.length, 2);
+
+      final gemini = readings[0];
+      expect(gemini.providerId, 'antigravity');
+      expect(gemini.displayName, 'Antigravity (Gemini Models)');
+      expect(gemini.planLabel, 'Google AI Pro');
+      expect(gemini.windows.length, 2);
+
+      // 5-hour window
+      expect(gemini.windows[0].windowId, '5h');
+      expect(gemini.windows[0].remainingPercent, 46);
+      expect(gemini.windows[0].resetsAt, DateTime.utc(2026, 11, 7, 21, 48, 21));
+
+      // Weekly window - completely independent from 5-hour window!
+      expect(gemini.windows[1].windowId, 'weekly');
+      expect(gemini.windows[1].remainingPercent, 68);
+      expect(gemini.windows[1].resetsAt, DateTime.utc(2026, 11, 14, 7, 25, 34));
+    });
+
     test('network failure returns cached reading when available', () async {
       int calls = 0;
       final fakeHttp = _FakeHttpClient((uri) {

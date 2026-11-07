@@ -70,6 +70,7 @@ class AntigravityQuotaClient {
     String? supportDir,
   }) {
     final paths = <String>[];
+    const termuxHome = '/data/data/com.termux/files/home';
     if (profileId != null && profileId.isNotEmpty) {
       if (supportDir != null && supportDir.isNotEmpty) {
         paths.add(
@@ -78,6 +79,9 @@ class AntigravityQuotaClient {
       }
       paths.add(
         '/home/oc/.oc-profiles/$profileId/.gemini/antigravity-cli/antigravity-oauth-token',
+      );
+      paths.add(
+        '$termuxHome/.oc-profiles/$profileId/.gemini/antigravity-cli/antigravity-oauth-token',
       );
       final home = Platform.environment['HOME'];
       if (home != null && home.isNotEmpty) {
@@ -93,6 +97,9 @@ class AntigravityQuotaClient {
     }
     paths.add(
       '/home/oc/.gemini/antigravity-cli/antigravity-oauth-token',
+    );
+    paths.add(
+      '$termuxHome/.gemini/antigravity-cli/antigravity-oauth-token',
     );
     final home = Platform.environment['HOME'];
     if (home != null && home.isNotEmpty) {
@@ -279,6 +286,9 @@ class AntigravityQuotaClient {
   ) =>
       Process.run(executable, args);
 
+  static const _defaultUserAgent =
+      'antigravity/cli/1.5.3 (aidev_client; os_type=linux; arch=arm64; cl=1016078699; auth_method=consumer)';
+
   Future<List<ProviderUsageReading>> _fetchUsageHttp({
     required String token,
     required DateTime now,
@@ -287,10 +297,48 @@ class AntigravityQuotaClient {
     client.connectionTimeout = const Duration(seconds: 8);
 
     try {
+      // 1. Fetch loadCodeAssist to discover tier, planLabel, and companion project.
+      final tierResp = await _postJson(
+        client,
+        'v1internal:loadCodeAssist',
+        token,
+        body: const {
+          'metadata': {'ideType': 'ANTIGRAVITY'},
+        },
+      );
+      String? planLabel;
+      String? companionProject;
+      if (tierResp.isSuccess && tierResp.body != null) {
+        try {
+          final parsed = jsonDecode(tierResp.body!);
+          if (parsed is Map) {
+            companionProject = parsed['cloudaicompanionProject'] as String?;
+            if (parsed['paidTier'] is Map) {
+              final paidTier = parsed['paidTier'] as Map;
+              final name = paidTier['name'];
+              if (name is String && name.isNotEmpty) {
+                planLabel = name;
+              }
+            }
+            if (planLabel == null && parsed['currentTier'] is Map) {
+              final tier = parsed['currentTier'] as Map;
+              final name = tier['name'];
+              if (name is String && name.isNotEmpty) {
+                planLabel = name;
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
+      final project = companionProject ?? 'aicode-consumers';
+
+      // 2. Query retrieveUserQuotaSummary with project parameter.
       final summaryResp = await _postJson(
         client,
         'v1internal:retrieveUserQuotaSummary',
         token,
+        body: {'project': project},
       );
 
       if (summaryResp.statusCode == 401 || summaryResp.statusCode == 403) {
@@ -317,6 +365,7 @@ class AntigravityQuotaClient {
         client,
         'v1internal:retrieveUserQuota',
         token,
+        body: {'project': project},
       );
       Map<String, dynamic>? quotaData;
       if (quotaResp.isSuccess && quotaResp.body != null) {
@@ -324,25 +373,6 @@ class AntigravityQuotaClient {
         if (parsed is Map<String, dynamic>) {
           quotaData = parsed;
         }
-      }
-
-      final tierResp = await _postJson(
-        client,
-        'v1internal:loadCodeAssist',
-        token,
-      );
-      String? planLabel;
-      if (tierResp.isSuccess && tierResp.body != null) {
-        try {
-          final parsed = jsonDecode(tierResp.body!);
-          if (parsed is Map && parsed['currentTier'] is Map) {
-            final tier = parsed['currentTier'] as Map;
-            final name = tier['name'];
-            if (name is String && name.isNotEmpty) {
-              planLabel = name;
-            }
-          }
-        } catch (_) {}
       }
 
       return parseHttpReadings(
@@ -587,7 +617,31 @@ class AntigravityQuotaClient {
               resetsAt: resetsAt,
             ),
           );
-          geminiWindows.add(
+          break;
+        }
+      }
+    }
+
+    // 3. Fallback for Claude / 3p buckets from retrieveUserQuota if missing from summary.
+    if (claudeWindows.isEmpty &&
+        quotaData != null &&
+        quotaData['buckets'] is List) {
+      for (final bucket in quotaData['buckets'] as List) {
+        if (bucket is! Map) continue;
+        final modelId = bucket['modelId'] as String?;
+        if (modelId == null) continue;
+
+        if (modelId.contains('claude') || modelId.contains('gpt-oss')) {
+          final fraction = bucket['remainingFraction'];
+          if (fraction is! num || !fraction.isFinite) continue;
+
+          final resetTimeStr = bucket['resetTime'] as String?;
+          final resetsAt = resetTimeStr != null
+              ? DateTime.tryParse(resetTimeStr)?.toUtc()
+              : null;
+          final remainingPercent = (fraction * 100).clamp(0, 100).round();
+
+          claudeWindows.add(
             ProviderUsageWindowReading(
               windowId: 'weekly',
               durationSeconds: 604800,
@@ -660,16 +714,18 @@ class AntigravityQuotaClient {
   Future<_ApiResponse> _postJson(
     HttpClient client,
     String path,
-    String token,
-  ) async {
+    String token, {
+    Map<String, dynamic>? body,
+  }) async {
+    final payload = utf8.encode(jsonEncode(body ?? const {}));
     for (final base in [primaryEndpoint, fallbackEndpoint]) {
       try {
         final uri = Uri.parse('$base/$path');
         final request = await client.postUrl(uri);
         request.headers.set('Authorization', 'Bearer $token');
         request.headers.set('Content-Type', 'application/json');
-        request.headers.set('User-Agent', 'antigravity/1.5.3');
-        request.add(utf8.encode('{}'));
+        request.headers.set('User-Agent', _defaultUserAgent);
+        request.add(payload);
 
         final response =
             await request.close().timeout(const Duration(seconds: 8));
