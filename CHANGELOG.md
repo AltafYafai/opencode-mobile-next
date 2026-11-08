@@ -2,6 +2,12 @@
 
 This project is in public alpha. Only the newest preview is supported.
 
+## 2.1.7+67 — 2026-11-08
+
+Fix on-demand refresh for Antigravity model quota when the phone agent host is idle,
+increase monitor timeouts to 35s, and update subscription details screen with spinner feedback.
+Full notes: [docs/releases/v2.1.7+67.md](docs/releases/v2.1.7+67.md).
+
 ## 2.1.4+62 — 2026-11-06
 
 Built-in Linux sets up on phones where its unpacking tool crashes (#117): the
