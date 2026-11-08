@@ -78,16 +78,17 @@ jobs:
           java-version: "17"
 
       - name: Set up Gradle 9.5
-        uses: gradle/actions/setup-gradle@v3
+        uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "9.5.0"
+          cache-disabled: true
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.47.2"
           channel: stable
-          cache: true
+          cache: false
 
       - name: Resolve dependencies
         run: flutter pub get
