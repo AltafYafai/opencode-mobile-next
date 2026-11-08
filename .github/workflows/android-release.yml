@@ -77,11 +77,41 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Set up Gradle 9.5
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: "9.5.0"
-          cache-disabled: true
+      - name: Provision and pre-cache Gradle 9.5
+        run: |
+          set -euo pipefail
+          dist_dir="$HOME/.gradle/wrapper/dists/gradle-9.5.0-all/aca6g93cdtcf0oapcfka748qh"
+          mkdir -p "$dist_dir"
+          zip_file="$dist_dir/gradle-9.5.0-all.zip"
+          expected_sha="a3c4ba4aca8f0075688b9c5b18939fd28e8cb4357c227da5c1d9f38343791439"
+          urls=(
+            "https://mirrors.cloud.tencent.com/gradle/gradle-9.5.0-all.zip"
+            "https://mirrors.aliyun.com/macports/distfiles/gradle/gradle-9.5.0-all.zip"
+            "https://services.gradle.org/distributions/gradle-9.5.0-all.zip"
+          )
+          success=0
+          for url in "${urls[@]}"; do
+            echo "Trying $url ..."
+            if curl -fSL --retry 3 --connect-timeout 15 --max-time 180 "$url" -o "$zip_file"; then
+              actual_sha=$(sha256sum "$zip_file" | awk '{print $1}')
+              if [ "$actual_sha" = "$expected_sha" ]; then
+                echo "Verified SHA-256: $actual_sha"
+                unzip -q -o "$zip_file" -d "$dist_dir"
+                touch "$dist_dir/gradle-9.5.0-all.zip.ok"
+                touch "$dist_dir/gradle-9.5.0-all.zip.lck"
+                success=1
+                break
+              else
+                echo "SHA-256 mismatch from $url: got $actual_sha"
+                rm -f "$zip_file"
+              fi
+            fi
+          done
+          if [ "$success" -ne 1 ]; then
+            echo "::error::Could not download and verify Gradle 9.5.0 from any mirror"
+            exit 1
+          fi
+          echo "$dist_dir/gradle-9.5.0/bin" >> "$GITHUB_PATH"
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
