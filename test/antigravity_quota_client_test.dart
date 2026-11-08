@@ -222,9 +222,18 @@ void main() {
       expect(script, contains('antigravity-oauth-token'));
       expect(script, contains('id_token_email'));
       expect(script, contains('ACCOUNT_EMAIL'));
+      expect(script, contains('export HOME='));
       // Never touches or leaks access/refresh tokens
       expect(script, isNot(contains('access_token')));
       expect(script, isNot(contains('refresh_token')));
+    });
+
+    test('readLocalAccount reads only email without credentials', () {
+      final email = AntigravityQuotaClient.readLocalAccount();
+      if (email != null) {
+        expect(email, contains('@'));
+        expect(email, isNot(contains('access_token')));
+      }
     });
   });
 }

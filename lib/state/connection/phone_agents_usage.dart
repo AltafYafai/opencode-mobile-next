@@ -59,6 +59,9 @@ extension _PhoneAgentsUsage on _ConnectionControllerPhoneAgents {
             displayName: 'Antigravity',
             fetchedAt: DateTime.now().toUtc(),
             windows: const [],
+            accountRef: AntigravityQuotaClient.readLocalAccount(
+              profileId: _paProfile?.id,
+            ),
             needsSignIn: true,
           ),
         );

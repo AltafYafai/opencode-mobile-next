@@ -514,7 +514,7 @@ class _UsageSubscriptionScreenState extends State<UsageSubscriptionScreen> {
                           KitTime.moment(context, s.checkedAt!, now: now),
                           copyable: false,
                         ),
-                      if (fetched != null)
+                      if (fetched != null || s.accountRef != null)
                         KitTechnicalValue(
                           l10n.usageDetailAccount,
                           s.accountRef == null

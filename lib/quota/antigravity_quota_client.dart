@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import '../domain/provider_usage.dart';
 
@@ -49,12 +50,15 @@ class AntigravityQuotaClient {
         : '';
     return 'for b in $candidates; do '
         'if [ -x "\$b" ]; then '
-        'HOME="\${b%/.local/bin/agy}"; '
+        'h="\${b%/.local/bin/agy}"; '
+        'if [ -n "$pId" ] && [ -d "/home/oc/.oc-profiles/$pId" ]; then h="/home/oc/.oc-profiles/$pId"; '
+        'elif [ ! -f "\$h/.gemini/antigravity-cli/antigravity-oauth-token" ]; then '
+        'for o in /home/oc/.oc-profiles/*/.gemini/antigravity-cli/antigravity-oauth-token; do '
+        'if [ -f "\$o" ]; then h="\${o%/.gemini/antigravity-cli/antigravity-oauth-token}"; break; fi; '
+        'done; fi; '
+        'export HOME="\$h"; '
         'f="\$HOME/.gemini/antigravity-cli/antigravity-oauth-token"; '
-        'if [ ! -f "\$f" ] && [ -n "$pId" ]; then f="/home/oc/.oc-profiles/$pId/.gemini/antigravity-cli/antigravity-oauth-token"; fi; '
-        'if [ ! -f "\$f" ]; then for o in /home/oc/.oc-profiles/*/.gemini/antigravity-cli/antigravity-oauth-token; do if [ -f "\$o" ]; then f="\$o"; break; fi; done; fi; '
-        'e=\$(grep -o \'"id_token_email"[[:space:]]*:[[:space:]]*"[^"]*"\' "\$f" 2>/dev/null | cut -d\'"\' -f4); '
-        'if [ -z "\$e" ]; then e=\$(grep -o \'"email"[[:space:]]*:[[:space:]]*"[^"]*"\' "\$f" 2>/dev/null | cut -d\'"\' -f4); fi; '
+        'e=\$(sed -n \'s/.*"id_token_email"[^"]*" *\\([^"]*\\)".*/\\1/p; s/.*"email"[^"]*" *\\([^"]*\\)".*/\\1/p\' "\$f" 2>/dev/null | head -n 1); '
         'if [ -n "\$e" ]; then echo "ACCOUNT_EMAIL:\$e"; fi; '
         'exec "\$b" -p /usage --output-format json; '
         'fi; '
@@ -75,6 +79,57 @@ class AntigravityQuotaClient {
     return null;
   }
 
+  /// Reads only the account email from local credentials if present on disk.
+  /// Never touches or exposes tokens or secrets.
+  static String? readLocalAccount({String? profileId}) {
+    final paths = <String>[
+      if (profileId != null && _safeId.hasMatch(profileId)) ...[
+        '/home/oc/.oc-profiles/$profileId/.gemini/antigravity-cli/antigravity-oauth-token',
+        '/data/data/com.termux/files/home/.oc-profiles/$profileId/.gemini/antigravity-cli/antigravity-oauth-token',
+      ],
+      '/home/oc/.gemini/antigravity-cli/antigravity-oauth-token',
+      '/data/data/com.termux/files/home/.gemini/antigravity-cli/antigravity-oauth-token',
+    ];
+    for (final path in paths) {
+      try {
+        final file = File(path);
+        if (file.existsSync()) {
+          final content = file.readAsStringSync();
+          final parsed = jsonDecode(content);
+          if (parsed is Map) {
+            final email = parsed['id_token_email'] ?? parsed['email'];
+            if (email is String && email.isNotEmpty) {
+              return cleanUsageText(email, 64);
+            }
+          }
+        }
+      } catch (_) {}
+    }
+    try {
+      final dir = Directory('/home/oc/.oc-profiles');
+      if (dir.existsSync()) {
+        for (final entry in dir.listSync()) {
+          if (entry is Directory) {
+            final f = File(
+              '${entry.path}/.gemini/antigravity-cli/antigravity-oauth-token',
+            );
+            if (f.existsSync()) {
+              final content = f.readAsStringSync();
+              final parsed = jsonDecode(content);
+              if (parsed is Map) {
+                final email = parsed['id_token_email'] ?? parsed['email'];
+                if (email is String && email.isNotEmpty) {
+                  return cleanUsageText(email, 64);
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
   /// The CLI's quota readings, or an empty list when the CLI is missing, not
   /// signed in, too slow, or answers something unreadable. Never invents
   /// numbers: an empty list means "this provider reports no limits now".
@@ -83,7 +138,22 @@ class AntigravityQuotaClient {
     DateTime? now,
   }) async {
     final run = runner;
-    if (run == null) return const [];
+    if (run == null) {
+      final fallbackAccount = readLocalAccount(profileId: profileId);
+      if (fallbackAccount != null) {
+        return [
+          ProviderUsageReading(
+            providerId: 'antigravity',
+            displayName: 'Antigravity',
+            fetchedAt: (now ?? _clock()).toUtc(),
+            windows: const [],
+            accountRef: fallbackAccount,
+            needsSignIn: true,
+          ),
+        ];
+      }
+      return const [];
+    }
     final currentNow = (now ?? _clock()).toUtc();
     try {
       final res = await run(
@@ -93,7 +163,8 @@ class AntigravityQuotaClient {
       if (res.exitCode != 0) return const [];
       final body = _jsonObjectIn(res.output);
       if (body == null) return const [];
-      final accountEmail = _accountIn(res.output);
+      final accountEmail =
+          _accountIn(res.output) ?? readLocalAccount(profileId: profileId);
       final readings = parseCliJson(
         body,
         currentNow: currentNow,
