@@ -103,7 +103,7 @@ class AntigravityQuotaClient {
     try {
       final res = await run(
         cliScript(profileId: profileId),
-        timeout: const Duration(seconds: 20),
+        timeout: const Duration(seconds: 35),
       );
       if (res.exitCode != 0) return const [];
       final body = _jsonObjectIn(res.output);

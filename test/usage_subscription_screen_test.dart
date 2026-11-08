@@ -274,6 +274,31 @@ void main() {
     },
   );
 
+  usageTestWidgets(
+    'tapping refresh triggers controller refresh and updates state',
+    (tester) async {
+      final h = await usageHarness(
+        connections: const [usageInApp],
+        result: UsageSourceResult(
+          readings: [
+            usageReading(
+              'antigravity',
+              'inapp',
+              account: 'altaf.alu@gmail.com',
+            ),
+          ],
+        ),
+      );
+      await _open(tester, h, key: 'antigravity|altaf.alu@gmail.com');
+      final callsBefore = h.source.calls;
+      expect(usageKey('usage-sub-refresh'), findsOneWidget);
+      await tester.tap(usageKey('usage-sub-refresh'));
+      await tester.pumpAndSettle();
+      expect(h.source.calls, greaterThan(callsBefore));
+      expect(h.source.force, isTrue);
+    },
+  );
+
   usageTestWidgets('a plan that vanished says so instead of showing nothing', (
     tester,
   ) async {

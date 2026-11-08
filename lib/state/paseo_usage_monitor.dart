@@ -37,7 +37,7 @@ class PaseoUsageMonitor extends ChangeNotifier {
     DateTime Function()? clock,
     this.foregroundInterval = const Duration(minutes: 5),
     this.backgroundInterval = const Duration(minutes: 15),
-    this.timeout = const Duration(seconds: 12),
+    this.timeout = const Duration(seconds: 35),
   }) : clock = clock ?? DateTime.now;
 
   final ProfileStore store;

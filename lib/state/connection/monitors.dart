@@ -194,6 +194,7 @@ extension _ConnectionControllerMonitorsImpl on ConnectionController {
         createGateway: PaseoProviderUsageGateway.new,
         phoneSupported: () => _self.phoneUsageSupported,
         phoneRead: _self._paReadUsage,
+        timeout: const Duration(seconds: 35),
         autoRead: true,
         isReadable: (id) => _ownsProfileServices && isProfileReadable(id),
       )..addListener(_quotaMonitorChanged);

@@ -116,7 +116,7 @@ class UsageSubscriptionsController extends ChangeNotifier {
     DateTime Function()? clock,
     this.foregroundInterval = const Duration(minutes: 5),
     this.backgroundInterval = const Duration(minutes: 15),
-    this.sourceTimeout = const Duration(seconds: 25),
+    this.sourceTimeout = const Duration(seconds: 40),
   }) : clock = clock ?? DateTime.now {
     _widgetSettings = UsageWidgetSettings.load(prefs);
     _loadAlerts();
@@ -180,6 +180,13 @@ class UsageSubscriptionsController extends ChangeNotifier {
   UsageSubscription? subscription(String key) {
     for (final s in _snapshot.subscriptions) {
       if (s.key == key) return s;
+    }
+    final parts = key.split('|');
+    if (parts.length >= 2) {
+      final providerId = parts[0];
+      for (final s in _snapshot.subscriptions) {
+        if (s.providerId == providerId) return s;
+      }
     }
     return null;
   }

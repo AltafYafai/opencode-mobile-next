@@ -47,6 +47,17 @@ class UsageSubscriptionScreen extends StatefulWidget {
 class _UsageSubscriptionScreenState extends State<UsageSubscriptionScreen> {
   String? _notice;
   bool _saveFailed = false;
+  bool _isRefreshing = false;
+
+  Future<void> _handleRefresh() async {
+    if (_isRefreshing) return;
+    setState(() => _isRefreshing = true);
+    try {
+      await widget.usage.refresh(force: true);
+    } finally {
+      if (mounted) setState(() => _isRefreshing = false);
+    }
+  }
 
   UsageSignInLauncher get _launcher =>
       widget.launcher ?? ConnectionSignInLauncher(widget.controller);
@@ -186,8 +197,8 @@ class _UsageSubscriptionScreenState extends State<UsageSubscriptionScreen> {
                 key: const ValueKey('usage-sub-refresh'),
                 label: l10n.usagePlansRefresh,
                 icon: AppIconography.retry,
-                onPressed: () => unawaited(usage.refresh(force: true)),
-                working: usage.refreshing,
+                onPressed: _handleRefresh,
+                working: _isRefreshing || usage.refreshing,
               ),
             ],
           ),
