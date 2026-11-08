@@ -233,6 +233,15 @@ void main() {
       if (email != null) {
         expect(email, contains('@'));
         expect(email, isNot(contains('access_token')));
+        expect(AntigravityQuotaClient.lastKnownAccountEmail, email);
+      }
+    });
+
+    test('readLocalAccountAsync resolves email safely', () async {
+      final email = await AntigravityQuotaClient.readLocalAccountAsync();
+      if (email != null) {
+        expect(email, contains('@'));
+        expect(email, isNot(contains('access_token')));
       }
     });
   });

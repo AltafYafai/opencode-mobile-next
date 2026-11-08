@@ -333,7 +333,8 @@ class PaseoUsageSource implements UsageSource {
         final provider = reading.providerId;
         final accountRef = reading.accountRef ??
             (provider.startsWith('antigravity')
-                ? AntigravityQuotaClient.readLocalAccount(profileId: id)
+                ? AntigravityQuotaClient.readLocalAccount(profileId: id) ??
+                    AntigravityQuotaClient.lastKnownAccountEmail
                 : null);
         if (reading.needsSignIn && reading.windows.isEmpty) {
           readings.add(

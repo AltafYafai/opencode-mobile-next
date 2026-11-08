@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:path_provider/path_provider.dart';
+
 import '../domain/provider_usage.dart';
 
 /// Runs one shell [script] inside the app's built-in Linux and answers its exit
@@ -59,74 +61,158 @@ class AntigravityQuotaClient {
         'export HOME="\$h"; '
         'f="\$HOME/.gemini/antigravity-cli/antigravity-oauth-token"; '
         'e=\$(sed -n \'s/.*"id_token_email"[^"]*" *\\([^"]*\\)".*/\\1/p; s/.*"email"[^"]*" *\\([^"]*\\)".*/\\1/p\' "\$f" 2>/dev/null | head -n 1); '
+        'if [ -z "\$e" ]; then e=\$(grep -o \'"id_token_email"[[:space:]]*:[[:space:]]*"[^"]*"\' "\$f" 2>/dev/null | cut -d\'"\' -f4); fi; '
+        'if [ -z "\$e" ]; then e=\$(grep -o \'"email"[[:space:]]*:[[:space:]]*"[^"]*"\' "\$f" 2>/dev/null | cut -d\'"\' -f4); fi; '
         'if [ -n "\$e" ]; then echo "ACCOUNT_EMAIL:\$e"; fi; '
         'exec "\$b" -p /usage --output-format json; '
         'fi; '
         'done; exit 127';
   }
 
+  /// Cached in memory across calls once resolved.
+  static String? lastKnownAccountEmail;
+
   static final RegExp _accountPattern =
-      RegExp(r'^ACCOUNT_EMAIL:([^\r\n]+)', multiLine: true);
+      RegExp(r'ACCOUNT_EMAIL:([^\r\n]+)');
 
   static String? _accountIn(String output) {
     final match = _accountPattern.firstMatch(output);
     if (match != null) {
       final email = match.group(1)?.trim();
       if (email != null && email.isNotEmpty) {
-        return cleanUsageText(email, 64);
+        final cleaned = cleanUsageText(email, 64);
+        if (cleaned != null) lastKnownAccountEmail = cleaned;
+        return cleaned;
       }
     }
     return null;
   }
 
-  /// Reads only the account email from local credentials if present on disk.
-  /// Never touches or exposes tokens or secrets.
-  static String? readLocalAccount({String? profileId}) {
-    final paths = <String>[
-      if (profileId != null && _safeId.hasMatch(profileId)) ...[
-        '/home/oc/.oc-profiles/$profileId/.gemini/antigravity-cli/antigravity-oauth-token',
-        '/data/data/com.termux/files/home/.oc-profiles/$profileId/.gemini/antigravity-cli/antigravity-oauth-token',
-      ],
-      '/home/oc/.gemini/antigravity-cli/antigravity-oauth-token',
-      '/data/data/com.termux/files/home/.gemini/antigravity-cli/antigravity-oauth-token',
-    ];
-    for (final path in paths) {
-      try {
-        final file = File(path);
-        if (file.existsSync()) {
-          final content = file.readAsStringSync();
-          final parsed = jsonDecode(content);
-          if (parsed is Map) {
-            final email = parsed['id_token_email'] ?? parsed['email'];
-            if (email is String && email.isNotEmpty) {
-              return cleanUsageText(email, 64);
-            }
+  static String? _readEmailFromFile(File file) {
+    try {
+      if (!file.existsSync()) return null;
+      final content = file.readAsStringSync();
+      final match = RegExp(
+        r'"id_token_email"\s*:\s*"([^"]+)"|"email"\s*:\s*"([^"]+)"',
+      ).firstMatch(content);
+      if (match != null) {
+        final raw = match.group(1) ?? match.group(2);
+        if (raw != null && raw.isNotEmpty) {
+          final cleaned = cleanUsageText(raw, 64);
+          if (cleaned != null) {
+            lastKnownAccountEmail = cleaned;
+            return cleaned;
           }
         }
-      } catch (_) {}
+      }
+      final parsed = jsonDecode(content);
+      if (parsed is Map) {
+        final email = parsed['id_token_email'] ?? parsed['email'];
+        if (email is String && email.isNotEmpty) {
+          final cleaned = cleanUsageText(email, 64);
+          if (cleaned != null) {
+            lastKnownAccountEmail = cleaned;
+            return cleaned;
+          }
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  static String? _scanRoot(String rootPath, {String? profileId}) {
+    if (profileId != null && _safeId.hasMatch(profileId)) {
+      final f = File(
+        '$rootPath/.oc-profiles/$profileId/.gemini/antigravity-cli/antigravity-oauth-token',
+      );
+      final email = _readEmailFromFile(f);
+      if (email != null) return email;
     }
+    final sharedFile = File(
+      '$rootPath/.gemini/antigravity-cli/antigravity-oauth-token',
+    );
+    final sharedEmail = _readEmailFromFile(sharedFile);
+    if (sharedEmail != null) return sharedEmail;
+
     try {
-      final dir = Directory('/home/oc/.oc-profiles');
+      final dir = Directory('$rootPath/.oc-profiles');
       if (dir.existsSync()) {
         for (final entry in dir.listSync()) {
           if (entry is Directory) {
             final f = File(
               '${entry.path}/.gemini/antigravity-cli/antigravity-oauth-token',
             );
-            if (f.existsSync()) {
-              final content = f.readAsStringSync();
-              final parsed = jsonDecode(content);
-              if (parsed is Map) {
-                final email = parsed['id_token_email'] ?? parsed['email'];
-                if (email is String && email.isNotEmpty) {
-                  return cleanUsageText(email, 64);
-                }
-              }
-            }
+            final email = _readEmailFromFile(f);
+            if (email != null) return email;
           }
         }
       }
     } catch (_) {}
+    return null;
+  }
+
+  /// Reads only the account email from local credentials if present on disk.
+  /// Never touches or exposes tokens or secrets.
+  static String? readLocalAccount({String? profileId}) {
+    if (lastKnownAccountEmail != null) return lastKnownAccountEmail;
+
+    final candidateRoots = <String>[
+      '/home/oc',
+      '/data/data/com.termux/files/home',
+      '/data/user/0/io.github.eslamasabry.opencode_mobile/files/linux/ubuntu/home/oc',
+      '/data/data/io.github.eslamasabry.opencode_mobile/files/linux/ubuntu/home/oc',
+      '/data/user/0/com.opencode.app/files/linux/ubuntu/home/oc',
+      '/data/data/com.opencode.app/files/linux/ubuntu/home/oc',
+      if (Platform.environment['HOME'] != null) Platform.environment['HOME']!,
+    ];
+
+    for (final root in candidateRoots) {
+      final email = _scanRoot(root, profileId: profileId);
+      if (email != null) return email;
+    }
+
+    // Check application storage patterns on Android
+    for (final prefix in const ['/data/user/0', '/data/data']) {
+      try {
+        final base = Directory(prefix);
+        if (base.existsSync()) {
+          for (final appDir in base.listSync()) {
+            if (appDir is Directory &&
+                (appDir.path.contains('opencode') ||
+                    appDir.path.contains('eslamasabry'))) {
+              final root = '${appDir.path}/files/linux/ubuntu/home/oc';
+              final email = _scanRoot(root, profileId: profileId);
+              if (email != null) return email;
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    return null;
+  }
+
+  /// Asynchronously resolves the account email, checking the application's
+  /// support directory (where in-app Ubuntu rootfs lives on Android) if sync
+  /// resolution hasn't found it yet.
+  static Future<String?> readLocalAccountAsync({String? profileId}) async {
+    final syncAccount = readLocalAccount(profileId: profileId);
+    if (syncAccount != null) return syncAccount;
+
+    try {
+      final support = await getApplicationSupportDirectory();
+      final root = '${support.path}/linux/ubuntu/home/oc';
+      final email = _scanRoot(root, profileId: profileId);
+      if (email != null) return email;
+    } catch (_) {}
+
+    try {
+      final docs = await getApplicationDocumentsDirectory();
+      final root = '${docs.path}/linux/ubuntu/home/oc';
+      final email = _scanRoot(root, profileId: profileId);
+      if (email != null) return email;
+    } catch (_) {}
+
     return null;
   }
 
@@ -165,6 +251,7 @@ class AntigravityQuotaClient {
       if (body == null) return const [];
       final accountEmail =
           _accountIn(res.output) ?? readLocalAccount(profileId: profileId);
+      if (accountEmail != null) lastKnownAccountEmail = accountEmail;
       final readings = parseCliJson(
         body,
         currentNow: currentNow,
